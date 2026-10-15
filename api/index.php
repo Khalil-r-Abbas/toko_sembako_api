@@ -90,7 +90,27 @@ if ($uri !== '/' && is_file($staticFile)) {
     return false; // biarkan PHP built-in server melayani file statis
 }
 
-// ─── 6. Bootstrap CodeIgniter 4 ──────────────────────────────────────────────
+// ─── 6. Paksa ENVIRONMENT ke nilai yang valid sebelum CI4 bootstrap ──────────
+// CI4 Boot::checkEnvironment() akan error jika nilai ini kosong/salah.
+// $_SERVER['CI_ENVIRONMENT'] dari Vercel bisa kosong atau tidak di-set.
+if (! defined('ENVIRONMENT')) {
+    $ciEnv = $_SERVER['CI_ENVIRONMENT']
+          ?? getenv('CI_ENVIRONMENT')
+          ?: 'production';
+
+    // Fallback ke 'production' jika nilai tidak valid
+    if (! in_array($ciEnv, ['development', 'testing', 'production'], true)) {
+        $ciEnv = 'production';
+    }
+
+    define('ENVIRONMENT', $ciEnv);
+
+    // Sinkronkan ke $_SERVER agar Boot.php tidak mendefinisikan ulang dengan nilai salah
+    $_SERVER['CI_ENVIRONMENT'] = $ciEnv;
+    putenv("CI_ENVIRONMENT={$ciEnv}");
+}
+
+// ─── 7. Bootstrap CodeIgniter 4 ──────────────────────────────────────────────
 require $projectRoot . '/app/Config/Paths.php';
 
 $paths = new Config\Paths();
